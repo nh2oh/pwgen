@@ -1,11 +1,7 @@
-//
-// pw_rand.c --- generate completely random (and hard to remember)
-//
-//
+// pw_rand.cpp -- generate completely random (and hard to remember) passwords
+// Copyright (C) 2018 by Ben Knowles
 // Copyright (C) 2001,2002 by Theodore Ts'o
-//
-// This file may be distributed under the terms of the GNU Public
-// License.
+// This file may be distributed under the terms of the GNU Public License.
 //
 
 #include <string>
@@ -20,7 +16,6 @@ const std::string pw_lowers {"abcdefghijklmnopqrstuvwxyz"};
 const std::string pw_symbols {"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"};
 const std::string pw_ambiguous {"B8G6I1l0OQDS5Z2"};
 const std::string pw_vowels {"01aeiouyAEIOUY"};
-
 
 
 std::string pw_rand(const pw_opts_t& opts) {

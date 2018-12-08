@@ -1,10 +1,7 @@
-//
- // pw_phonemes.c --- generate secure passwords using phoneme rules
- //
- // Copyright (C) 2001,2002 by Theodore Ts'o
- // 
- // This file may be distributed under the terms of the GNU Public
- // License.
+// pw_phonemes.cpp --- generate secure passwords using phoneme rules
+// Copyright (C) 2018 by Ben Knowles
+// Copyright (C) 2001,2002 by Theodore Ts'o
+ // This file may be distributed under the terms of the GNU Public License.
  //
 
 #include <string>

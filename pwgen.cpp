@@ -1,7 +1,6 @@
 // pwgen.cpp -- generate secure passwords
 // Copyright (C) 2018 by Ben Knowles
 // Copyright (C) 2001,2002 by Theodore Ts'o
-// 
 // This file may be distributed under the terms of the GNU Public License.
 //
 
@@ -9,26 +8,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>  // std::max()
-
-
-//#ifdef HAVE_GETOPT_LONG
-//struct option pwgen_options[] = {
-//	{ "alt-phonics", no_argument, 0, 'a' },
-//	{ "capitalize", no_argument, 0, 'c' },
-//	{ "numerals", no_argument, 0, 'n'},
-//	{ "symbols", no_argument, 0, 'y'},
-//	{ "num-passwords", required_argument, 0, 'N'},
-//	{ "remove-chars", required_argument, 0, 'r' },
-//	{ "secure", no_argument, 0, 's' },
-//	{ "help", no_argument, 0, 'h'},
-//	{ "no-numerals", no_argument, 0, '0' },
-//	{ "no-capitalize", no_argument, 0, 'A' },
-//	{ "sha1", required_argument, 0, 'H' },
-//	{ "ambiguous", no_argument, 0, 'B' },
-//	{ "no-vowels", no_argument, 0, 'v' },
-//	{ 0, 0, 0, 0}
-//};
-//#endif
+#include <exception>
 
 std::string usage();
 
