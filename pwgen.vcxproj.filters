@@ -18,9 +18,6 @@
     <ClCompile Include="pwgen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="randnum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sha1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

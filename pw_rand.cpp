@@ -1,91 +1,106 @@
-/*
- * pw_rand.c --- generate completely random (and hard to remember)
- * 	passwords
- *
- * Copyright (C) 2001,2002 by Theodore Ts'o
- * 
- * This file may be distributed under the terms of the GNU Public
- * License.
- */
+//
+// pw_rand.c --- generate completely random (and hard to remember)
+//
+//
+// Copyright (C) 2001,2002 by Theodore Ts'o
+//
+// This file may be distributed under the terms of the GNU Public
+// License.
+//
 
 #include <string>
 #include <algorithm>
 #include <random>
+#include <iostream>
 #include "pwgen.h"
 
-const char *pw_digits = "0123456789";
-const char *pw_uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const char *pw_lowers = "abcdefghijklmnopqrstuvwxyz";
-const char *pw_symbols = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-const char *pw_ambiguous = "B8G6I1l0OQDS5Z2";
-const char *pw_vowels = "01aeiouyAEIOUY";
+const std::string pw_digits {"0123456789"};
+const std::string pw_uppers {"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+const std::string pw_lowers {"abcdefghijklmnopqrstuvwxyz"};
+const std::string pw_symbols {"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"};
+const std::string pw_ambiguous {"B8G6I1l0OQDS5Z2"};
+const std::string pw_vowels {"01aeiouyAEIOUY"};
 
 
 
 std::string pw_rand(const pw_opts_t& opts) {
-	std::string chars {};
-	chars += pw_lowers;_
-	if (opts.digits) { chars += pw_digits; }  
-	if (opts.uppers) { chars += pw_uppers; }
-	if (opts.symbols) { chars += pw_symbols; }
-	// should first build drop_chars then call set_diff in each of these
-
 	std::string drop_chars {};
+	drop_chars.reserve(opts.remove_chars.size()+pw_ambiguous.size()+pw_vowels.size());
 	drop_chars += opts.remove_chars;
 	if (opts.no_ambiguous) { drop_chars += pw_ambiguous; }
 	if (opts.no_vowels) { drop_chars += pw_vowels; }
-	
-	std::string final_chars {};
-	std::set_difference(chars.begin(),chars.end(),
-		drop_chars.begin(),drop_chars.end(),
-		final_chars.begin());
 
-	// check to make sure remove_chars did not remove all the digits
-	if (opts.digits 
-		&& std::search(chars.begin(),chars.end(),pw_digits.begin(),pw_digits.end()) == chars.end()) {
-		std::cerr << "Error: No digits left in the valid set\n" << std::endl;
-		std::abort();
+	std::string chars {};
+	
+	chars += pw_lowers;
+	if (opts.digits) {
+		std::string digits {};
+		std::set_difference(pw_digits.begin(),pw_digits.end(),
+		drop_chars.begin(),drop_chars.end(),
+		std::back_inserter(digits));
+
+		if (digits.size() == 0) {
+			std::cerr << "Error: No digits left in the valid set\n" << std::endl;
+			std::abort();
+		}
+		chars += digits;
 	}
-	if (opts.uppers 
-		&& std::search(chars.begin(),chars.end(),pw_uppers.begin(),pw_uppers.end()) == chars.end()) {
-		std::cerr << "Error: No uppers left in the valid set\n" << std::endl;
-		std::abort();
+	if (opts.uppers) {
+		std::string uppers {};
+		std::set_difference(pw_uppers.begin(),pw_uppers.end(),
+		drop_chars.begin(),drop_chars.end(),
+		std::back_inserter(uppers));
+
+		if (uppers.size() == 0) {
+			std::cerr << "Error: No uppers left in the valid set\n" << std::endl;
+			std::abort();
+		}
+		chars += uppers;
 	}
-	if (opts.symbols 
-		&& std::search(chars.begin(),chars.end(),pw_symbols.begin(),pw_symbols.end()) == chars.end()) {
-		std::cerr << "Error: No symbols left in the valid set\n" << std::endl;
-		std::abort();
+	if (opts.symbols) {
+		std::string symbols {};
+		std::set_difference(pw_symbols.begin(),pw_symbols.end(),
+		drop_chars.begin(),drop_chars.end(),
+		std::back_inserter(symbols));
+
+		if (symbols.size() == 0) {
+			std::cerr << "Error: No symbols left in the valid set\n" << std::endl;
+			std::abort();
+		}
+		chars += symbols;
 	}
-	if (chars.size() == 0) {
-		std::cerr << "Error: No chars left in the valid set\n" << std::endl;
-		std::abort();
-	}
+
+	auto contains = [](const std::string& hstk, const char ndl) -> bool {
+		return (std::find(hstk.begin(),hstk.end(),ndl) != pw_digits.end());
+	};
 
 	std::default_random_engine re {};
-	std::uniform_int_distribution rd {0, chars_final.size()-1};
+	std::uniform_int_distribution rd {size_t {0}, chars.size()-1};
 
-	std::string passwd {};
-	optflag passwd_satisfies {};  // Not sure how to default-construct
+	std::string passwd {};  passwd.reserve(opts.pw_length);
+	bool has_digit {false}; bool has_symbol {false}; bool has_upper {false};
 	while (passwd.size() < opts.pw_length) {
-		char curr_ch = chars_final[rd(re)];
+		char curr_ch = chars[rd(re)];
 		passwd += curr_ch;
 
-		if ((passwd_satisfies & optflag::require_digits) &&
-			std::find(pw_digits.begin(),pw_digits.end(),ch) != pw_digits.end()) {
-			passwd_satisfies &= ~optflag::require_digits;
+		if (!has_digit && opts.digits) {
+			has_digit |= contains(pw_digits,curr_ch);
 		}
-		if ((passwd_satisfies & optflag::require_uppers) &&
-			std::find(pw_uppers.begin(),pw_uppers.end(),ch) != pw_uppers.end()) {
-			passwd_satisfies &= ~optflag::require_uppers;
+		if (!has_upper && opts.digits) {
+			has_upper |= contains(pw_uppers,curr_ch);
 		}
-		if ((passwd_satisfies & optflag::require_symbols) &&
-			std::find(pw_symbols.begin(),pw_symbols.end(),ch) != pw_symbols.end()) {
-			passwd_satisfies &= ~optflag::require_symbols;
+		if (!has_symbol && opts.symbols) {
+			has_symbol |= contains(pw_symbols,curr_ch);
 		}
 	
-		if (passwd_satisfies & (optflag::require_uppers | optflag::require_digits | optflag::require_symbols)) {
-			passwd.clear();
-			// passwd_satisfies = ... need to clear ...
+		if (passwd.size() == opts.pw_length) {
+			if ((!has_symbol && opts.symbols)
+				|| (!has_upper && opts.digits)
+				|| (!has_digit && opts.digits)) {
+				// passwd is the right length but one or more of the char-inclusion requirements
+				// is not set.  
+				passwd.clear();
+			}
 		}
 	}
 

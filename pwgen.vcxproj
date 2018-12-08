@@ -112,7 +112,6 @@
     <ClCompile Include="pwgen.cpp" />
     <ClCompile Include="pw_phonemes.cpp" />
     <ClCompile Include="pw_rand.cpp" />
-    <ClCompile Include="randnum.cpp" />
     <ClCompile Include="sha1.cpp" />
     <ClCompile Include="sha1num.cpp" />
   </ItemGroup>
