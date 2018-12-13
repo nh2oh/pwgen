@@ -1,12 +1,13 @@
-/*
- * sha1num.c --- generate sha1 hash based, pseudo random numbers
- *
- * Copyright (C) 2005 by Olivier Guerrier
- *
- * This file may be distributed under the terms of the GNU Public
- * License.
- */
+//
+// sha1num.c --- generate sha1 hash based, pseudo random numbers
+//
+// Copyright (C) 2005 by Olivier Guerrier
+//
+// This file may be distributed under the terms of the GNU Public
+// License.
+//
 
+/*
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,3 +76,6 @@ int pw_sha1_number(int max_num)
 	val = (int) (sha1sum[sha1sum_idx++] / ((float) 256) * max_num);
 	return (val);
 }
+
+*/
+

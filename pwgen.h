@@ -6,6 +6,10 @@
 //
 #include <string>
 #include <vector>
+#include <bitset>
+
+// Returns usage info
+std::string usage();
 
 struct pw_opts_t {
 	bool digits {true};  // True => at least one digit
@@ -27,23 +31,85 @@ std::string pw_phonemes(const pw_opts_t&);
 std::string pw_rand(const pw_opts_t&);
 
 enum class eflag {
-	is_consonant 0x0001,
-	is_vowel 0x0002,
-	is_dipthong 0x0004,
-	not_first 0x0008
+	none = 0x0000,
+	is_consonant = 0x0001,
+	is_vowel = 0x0002,
+	is_dipthong = 0x0004,
+	not_first = 0x0008
 };
 
 enum class optflag {
-	require_digits 0x0001,
-	require_uppers 0x0002,
-	require_symbols 0x0004,
-	no_ambiguous 0x0008,
-	no_vowels 0x0010
+	none = 0x0000,
+	require_digits = 0x0001,
+	require_uppers = 0x0002,
+	require_symbols = 0x0004,
+	no_ambiguous = 0x0008,
+	no_vowels = 0x0010
+};
+
+class elem_properties_t {
+public:
+	enum flag {
+		consonant = 0x0001,
+		vowel = 0x0002,
+		dipthong = 0x0004,
+		not_first = 0x0008
+	};
+	explicit elem_properties_t()=default;
+	/*explicit elem_properties_t(elem_properties_t::flag f) {
+		m_prop += f;
+		*this->is_consonant(f & elem_properties_t::flag::consonant);
+		*this->is_vowel(f & elem_properties_t::flag::vowel);
+		*this->is_dipthong(f & elem_properties_t::flag::dipthong);
+		*this->not_first(f & elem_properties_t::flag::not_first);
+	};*/
+	// Getters
+	bool consonant() const { return m_prop[0]; };
+	bool vowel() const { return m_prop[1]; };
+	bool vowel_or_consonant { return m_prop[4]; };  // NB: 4
+	bool dipthong() const { return m_prop[2]; };
+	bool not_first() const { return m_prop[3]; };
+	// Setters
+	void consonant(bool on) { m_prop[0] = on; };
+	void vowel(bool on) { m_prop[1] = on; };
+	bool vowel_or_consonant(bool on) { m_prop[4] = on; };  // NB: 4
+    void is_dipthong(bool on) { m_prop[2] = on; };
+    void not_first(bool on) { m_prop[3] = on; };
+
+	void reset() { m_prop.reset(); };
+private:
+	void set(elem_properties_t::flag f) {
+		if (f == (elem_properties_t::flag::vowel | elem_properties_t::flag::consonant)) { *this->vowel_or_consonant(true); };
+			// Has to be before setter for consonant() & vowel()
+		if (f == elem_properties_t::flag::consonant) { *this->consonant(true); };
+		if (f == elem_properties_t::flag::vowel) { *this->vowel(true); };
+		if (f == elem_properties_t::flag::dipthong) { *this->dipthong(true); };
+		if (f == elem_properties_t::flag::not_first) { *this->not_first(true); };
+	};
+	std::bitset<5> m_prop {0,0,0,0,0};
 };
 
 struct pw_element {
 	const char	*str;
 	eflag flags;
+};
+
+class pw_properties_t {
+public:
+	// Getters
+	bool digits() const { return m_prop[0]; };
+	bool uppers() const { return m_prop[1]; };
+	bool symbols() const { return m_prop[2]; };
+	bool no_ambiguous() const { return m_prop[3]; };
+	bool no_vowels() const { return m_prop[4]; };
+	// Setters
+	void digits(bool on) { m_prop[0] = on; };
+	void uppers(bool on) { m_prop[1] = on; };
+    void symbols(bool on) { m_prop[2] = on; };
+    void no_ambiguous(bool on) { m_prop[3] = on; };
+	void no_vowels(bool on) { m_prop[4] = on; };
+private:
+	std::bitset<5> m_prop {0,0,0,0,0};
 };
 
 /*

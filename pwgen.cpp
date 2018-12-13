@@ -10,7 +10,7 @@
 #include <algorithm>  // std::max()
 #include <exception>
 
-std::string usage();
+
 
 int main(int argc, char **argv) {
 	int	term_width = 80;
@@ -107,15 +107,4 @@ std::string usage() {
 	
 	return s;
 }
-
-/*pw_opts get_cmdln_opts(const std::vector<std::string>& cmd_ln, const std::string& opts_fmt) {
-	
-	bool expect_optn_name {false}; bool expect_optn_arg {false};
-	for (int i=0; i<cmd_ln.size(); ++i) {
-		//...
-	}
-
-}*/
-
-
 

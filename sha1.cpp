@@ -18,6 +18,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/*
+
 #include <string.h>
 
 #include "sha1.h"
@@ -296,9 +298,9 @@ void sha1_finish( ctx, digest )
 #include <stdlib.h>
 #include <stdio.h>
 
-/*
- * those are the standard FIPS-180-1 test vectors
- */
+//
+// those are the standard FIPS-180-1 test vectors
+//
 
 static char *msg[] = 
 {
@@ -397,3 +399,4 @@ int main( argc, argv )
 }
 
 #endif
+*/
