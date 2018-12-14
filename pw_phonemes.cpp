@@ -1,8 +1,8 @@
 // pw_phonemes.cpp --- generate secure passwords using phoneme rules
 // Copyright (C) 2018 by Ben Knowles
 // Copyright (C) 2001,2002 by Theodore Ts'o
- // This file may be distributed under the terms of the GNU Public License.
- //
+// This file may be distributed under the terms of the GNU Public License.
+//
 
 #include <string>
 #include <random>
@@ -64,12 +64,13 @@ pw_element elements[] = {
 //#define NUM_ELEMENTS (sizeof(elements) / sizeof (struct pw_element))
 
 std::string pw_phonemes(const pw_opts_t& opts) {
-	//opts.no_vowels is not enforced
+	// opts.no_vowels is not enforced
 
 	std::string pw_digits_all = {"0123456789"};
 	std::string pw_symbols_all = {"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"};
 	std::string pw_ambiguous_all = {"B8G6I1l0OQDS5Z2"};
 
+	// TODO:  Not used; move to pw_rand()
 	auto contains_ambiguous = [pw_ambiguous](const std::string& s) -> bool {
 		auto it = std::find_first_of(s.begin(),s.end(),
 				pw_ambiguous.begin(),pw_ambiguous.end());
@@ -181,7 +182,8 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 			if ((opts.uppers && !curr_feats.has_upper) 
 				|| (opts.digits && !curr_feats.has_digit) 
 				|| (opts.symbols && !curr_feats.has_symbol)) {
-				// The current passwd does not have all the features required by opts; restart
+				// The current passwd is the correct length but does not have all the 
+				// features required by opts; restart
 				passwd.clear();
 				rq_curr_elem.reset();
 				curr_feats = passwd_features_t {};
@@ -189,14 +191,18 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 		}
 
 	}
+	
 
-	constexpr int a1 {0x0001};
-	constexpr int a2 {0x0010};
+	constexpr int cons {0x0001};  // cons
+	constexpr int vow {0x0002};  // vow
 	constexpr int a3 {0x0100};
 	constexpr int r1 {a1|a2|a3};
 	constexpr int r2 {0x0000};
-	constexpr int b {0x0101};
-	constexpr bool t1 {b&a2};
+	constexpr int tz {0};
+	constexpr int t1 {b1};
+
+	constexpr int cv {cons | vow};
+	constexpr bool tz {1 & cv};
 
 	return passwd;
 }
@@ -268,7 +274,7 @@ try_again:
 			break;
 		
 		//
-		 * Handle PW_DIGITS
+		 // Handle PW_DIGITS
 		 //
 		if (pw_flags & PW_DIGITS) {
 			if (!first && (pw_number(10) < 3)) {
@@ -303,7 +309,7 @@ try_again:
 		}
 
 		//
-		 * OK, figure out what the next element should be
+		 // OK, figure out what the next element should be
 		 //
 		if (should_be == CONSONANT) {
 			should_be = VOWEL;

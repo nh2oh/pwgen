@@ -45,18 +45,23 @@ public:
 		forbid = 0x0002,
 		ignore = 0x0004
 	};
-	enum flag {
+	enum class flag {
 		vowel = 0x0002,
 		dipthong = 0x0004,
 		not_first = 0x0008
 	};
+	// TODO:  Define:
+	// flagset ~ int
+	// bool operator==(flagset,flag) const;  bool operator!=(flagset,flag) const;
+	// flagset operator&(flagset,flag) const;  flagset operator|(flagset,flag) const;
+	// flagset operator(flag);
 
 	explicit elem_properties_t()=default;
 
 	// Getters
 	bool satisfied(elem_properties_t::flag f, bool contains) const {
 		int flgmode = m_prop[f2idx(f)];
-		return ((flgmode==0) || (contains && flgmode==1) || (!contains && flgmode==-1))
+		return ((flgmode==0) || (contains && flgmode==1) || (!contains && flgmode==-1));
 	};
 	bool requires(elem_properties_t::flag f) const {
 		return m_prop[f2idx(f)]==1;
@@ -72,27 +77,23 @@ public:
 	void set(elem_properties_t::flag f, bool rqf) {
 		rqf ? set(f,elem_properties_t::mode::require) : set(f,elem_properties_t::mode::forbid);
 	};
+	// Replace above w/ :  
+	// set_requires(flag,bool)
+	// set_forbid(flag,bool)
+	// set_ignore(flag,bool)
 
 	void set(elem_properties_t::flag f, elem_properties_t::mode m) {
-		int v {0};
-		if (m==elem_properties_t::mode::forbid) {
-			v = -1;
-		} else if (m==elem_properties_t::mode::require) {
-			v = 1;
-		else if (m==elem_properties_t::mode::ignore) {
-			v = 0;
-		}
-		m_prop[f2idx(f)] = v;
+		m_prop[f2idx(f)] = m;
 	};
 
-	void reset() { std::fill(m_prop.begin(),m_prop.end(),0); };
+	void reset() { std::fill(m_prop.begin(),m_prop.end(),ignore); };
 private:
 	int f2idx(elem_properties_t::flag f) const {
 		if (f == elem_properties_t::flag::vowel) { return 0; };
 		if (f == elem_properties_t::flag::dipthong) { return 1; };
 		if (f == elem_properties_t::flag::not_first) { return 2; };
 	};
-	std::array<int,4> m_prop {0,0,0,0};
+	std::array<elem_properties_t::mode,3> m_prop {ignore,ignore,ignore};
 };
 
 struct pw_element {
@@ -114,12 +115,13 @@ struct pw_element {
 #define PW_NO_VOWELS	0x0010
 */
 
-// pointer to choose between random or sha1 pseudo random number generator //
-//extern int (*pw_number)(int max_num);
 
 extern const char *pw_symbols;
 extern const char *pw_ambiguous;
 
 // sha1num.c //
-extern void pw_sha1_init(char *sha1);
-extern int pw_sha1_number(int max_num);
+void pw_sha1_init(char *sha1);
+int pw_sha1_number(int max_num);
+
+
+
