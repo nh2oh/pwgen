@@ -9,7 +9,7 @@
 #include <algorithm>
 #include "pwgen.h"
 
-// Everything has a singe consonant label or a singe vowel label; some items have
+// Everything has a single consonant label or a single vowel label; some items have
 // addnl labels, but each element is either a vowel or consonant.  
 // is_consonant iff it starts w/a consonant (ex: "qu"); if contains, but does 
 // not start w/a consonant, does not get is_consonant (ex: "ah").  
@@ -17,7 +17,7 @@
 // w/a vowel, does not get is_vowel (ex: "qu").  
 // is_vowel, is_consonant are mutually exclusive
 // is_dipthong iff 2 letters.  Dipthongs exist that are also vowels; dipthongs
-// exist that are not also vowels.  
+// exist that not also consonants.  All dipthongs are either vowels or consonants.
 pw_element elements[] = {
 	{ "a",	eflag::is_vowel },
 	{ "ae", eflag::is_vowel | eflag::is_dipthong },
@@ -102,15 +102,16 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 	};
 
 	std::string passwd {};
-	elem_properties_t rq_curr_elem {};
-	eflag rq_prev_elem {eflag::none};  // requirements for the prev element
-	optflag passwd_satisfies {optflag::none};  // Not sure how to default-construct
+	elem_properties_t rq_curr_elem {};  // Requirements for the current element
+	struct passwd_features_t {
+		bool has_upper {false};
+		bool has_digit {false};
+		bool has_symbol {false};
+	};
+	passwd_features_t curr_pw_props {};
 
 	pw_element curr_elem;  // uninit :(
 	pw_element prev_elem;  // uninit :(
-	// - In his loop, first is set each iteration => i need to forbid or require not_first each
-	//   iter.  His 'first' is set to 1 ('true') only (1) for the very beginning of the passwd and
-	//   (2) right after a digit has been appended.  
 	while (passwd.size() < opts.pw_length) {
 		if (passwd.size() == 0) {  // First iter
 			rq_curr_elem.set(elem_properties_t::flag::not_first,elem_properties_t::flag::forbid);
@@ -118,18 +119,13 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 			rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()>4));
 
 		} else {  // Not the first iter
-			if (prev_elem & eflag::is_consonant) {
+			if (prev_elem.flags & eflag::is_consonant) {
 				rq_curr_elem.set(elem_properties_t::flag::vowel,elem_properties_t::mode::require);
-					// consonants are _always_ followed by vowels
+					// consonants are _always_ followed by vowels (c-v || c-dv); forbids c-dc
 			} else {  // prev elem was a vowel
+				rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()<=3));
 				rq_curr_elem.set(elem_properties_t::flag::dipthong,elem_properties_t::mode::forbid);
 					// vowels are _never_ followed by dipthongs
-				bool weird_condition = ((prevprev_elem.flags & eflag::is_vowel) // Note! prevprev!
-										|| (prev_elem.flags & eflag::is_dipthong) 
-										|| (randdig() > 3));
-				// If this weird_condition, require a consonant (forbid vowel), else require a vowel.
-				// This forbids: vowel-dipthong-vowel, vowel-vowel-vowel, vowel-consonant-vowel
-				rq_curr_elem.set(elem_properties_t::flag::vowel,!weird_condition);
 			}
 
 			if (std::stoi(passwd.back()) >= 0 && std::stoi(passwd.back()) <= 9) {
@@ -152,10 +148,10 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 		if (opts.uppers) {
 			if ((rq_curr_elem.forbids(elem_properties_t::flag::not_first) || (curr_elem.flags & eflag::is_consonant)) 
 				&& (randdig() < 2)) {
-				// If the curr_elem is a consonant or the current pos is a 'first' position 
-				// (wtf is with this wonky condition???), maybe convert curr_elem to upper.  
+				// If the curr_elem is a consonant or the current pos is a 'first' position, 
+				// maybe convert curr_elem to upper.  
 				std::transform(curr_elem.str.begin(),curr_elem.str.end(),str.begin(),::toupper);
-				passwd_satisfies |= optflag::require_uppers;
+				curr_feats.has_upper = true;
 			}
 		}
 
@@ -166,7 +162,7 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 		if (opts.digits 
 			&& rq_curr_elem.requires(elem_properties_t::flag::not_first) && (randdig() < 3)) {
 			passwd += rand_char(pw_digits);
-			passwd_satisfies |= optflag::require_digits;
+			curr_feats.has_digit = true;
 		}
 
 		// Symbols flag:  Require >= 1 symbol
@@ -175,18 +171,20 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 			&& rq_curr_elem.requires(elem_properties_t::flag::not_first)
 			&& (randdig() < 2)) {
 			passwd += rand_char(pw_symbols);
-			passwd_satisfies |= optflag::require_symbols;
+			curr_feats.has_symbol = true;
 		}
 
 		prev_elem = curr_elem;
-		rq_prev_elem = rq_curr_elem;
 		rq_curr_elem.reset();
 
 		if (passwd.size() >= opts.pw_length) {
-			if !((passwd_satisfies & optflag::require_uppers) 
-				&& (passwd_satisfies & optflag::require_digits) 
-				&& (passwd_satisfies & optflag::require_symbols)) {
+			if ((opts.uppers && !curr_feats.has_upper) 
+				|| (opts.digits && !curr_feats.has_digit) 
+				|| (opts.symbols && !curr_feats.has_symbol)) {
+				// The current passwd does not have all the features required by opts; restart
 				passwd.clear();
+				rq_curr_elem.reset();
+				curr_feats = passwd_features_t {};
 			}
 		}
 

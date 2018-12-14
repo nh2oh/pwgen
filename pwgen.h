@@ -15,7 +15,7 @@ std::string usage();
 struct pw_opts_t {
 	bool digits {true};  // True => at least one digit
 	bool uppers {true};  // True => At least one uppercase letter
-	bool symbols {false};
+	bool symbols {false};  // True => at least one symbol
 	bool no_vowels {false};  // Don't use vowels:  -v | --no-vowels
 	bool no_ambiguous {false};  // "Don't include ambiguous characters":  -B | --ambiguos
 	bool random {false};  // "generate completely random passwords -s | --secure"
@@ -25,7 +25,6 @@ struct pw_opts_t {
 	int num_pw {5};  // number of pw's to generate
 	int pw_length {10};
 	std::string remove_chars {};
-	int flags {0};  // not sure how to init for optflags enum
 };
 
 std::string pw_phonemes(const pw_opts_t&);
@@ -37,15 +36,6 @@ enum class eflag {
 	is_vowel = 0x0002,
 	is_dipthong = 0x0004,
 	not_first = 0x0008
-};
-
-enum class optflag {
-	none = 0x0000,
-	require_digits = 0x0001,
-	require_uppers = 0x0002,
-	require_symbols = 0x0004,
-	no_ambiguous = 0x0008,
-	no_vowels = 0x0010
 };
 
 class elem_properties_t {
@@ -110,24 +100,6 @@ struct pw_element {
 	eflag flags;
 };
 
-class pw_properties_t {
-public:
-	// Getters
-	bool digits() const { return m_prop[0]; };
-	bool uppers() const { return m_prop[1]; };
-	bool symbols() const { return m_prop[2]; };
-	bool no_ambiguous() const { return m_prop[3]; };
-	bool no_vowels() const { return m_prop[4]; };
-	// Setters
-	void digits(bool on) { m_prop[0] = on; };
-	void uppers(bool on) { m_prop[1] = on; };
-    void symbols(bool on) { m_prop[2] = on; };
-    void no_ambiguous(bool on) { m_prop[3] = on; };
-	void no_vowels(bool on) { m_prop[4] = on; };
-private:
-	std::bitset<5> m_prop {0,0,0,0,0};
-};
-
 /*
 //Flags for the pw_element
 #define CONSONANT	0x0001
@@ -147,17 +119,6 @@ private:
 
 extern const char *pw_symbols;
 extern const char *pw_ambiguous;
-
-// Function prototypes //
-
-// pw_phonemes.c//
-//extern void pw_phonemes(char *buf, int size, int pw_flags, char *remove);
-
-// pw_rand.c //
-//extern void pw_rand(char *buf, int size, int pw_flags, char *remove);
-
-// randnum.c //
-//extern int pw_random_number(int max_num);
 
 // sha1num.c //
 extern void pw_sha1_init(char *sha1);
