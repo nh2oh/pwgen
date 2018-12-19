@@ -8,6 +8,8 @@
 #include <vector>
 #include <bitset>
 #include <algorithm>
+#include<array>
+
 
 // Returns usage info
 std::string usage();
@@ -30,14 +32,78 @@ struct pw_opts_t {
 std::string pw_phonemes(const pw_opts_t&);
 std::string pw_rand(const pw_opts_t&);
 
-enum class eflag {
+enum eflag {
 	none = 0x0000,
 	is_consonant = 0x0001,
 	is_vowel = 0x0002,
 	is_dipthong = 0x0004,
 	not_first = 0x0008
 };
+//operator eflag(int) { return static_cast<eflag
 
+
+enum class rqflag {
+	vowel = 0,
+	dipthong = 1,
+	first = 2
+};
+enum class rqflag_forbid {
+	vowel = 0,
+	dipthong = 1,
+	first = 2
+};
+constexpr rqflag_forbid operator ~(rqflag f) {
+	return static_cast<rqflag_forbid>(static_cast<int>(f));
+};
+class elem_rq {
+public:
+	// Setters
+	void reset() { std::fill(this->rq_.begin(),this->rq_.end(),0); };
+	constexpr elem_rq& operator &=(int) { return *this;};
+	constexpr elem_rq& operator &=(rqflag f) { this->rq_[static_cast<size_t>(f)] = 1; return *this;};
+	constexpr elem_rq& operator &=(rqflag_forbid f) { this->rq_[static_cast<size_t>(f)] = -1; return *this; };
+
+	// Getters
+	constexpr bool operator &&(int f) const { 
+		if ((f & eflag::is_consonant) && (this->rq_[static_cast<size_t>(rqflag::vowel)]==1)) {
+			return false;
+		}
+		if ((f &~ eflag::is_consonant) && (this->rq_[static_cast<size_t>(rqflag::vowel)]==-1)) {
+			return false;
+		}
+		if ((f & eflag::is_vowel) && (this->rq_[static_cast<size_t>(rqflag::vowel)]==-1)) {
+			return false;
+		}
+		if ((f &~ eflag::is_vowel) && (this->rq_[static_cast<size_t>(rqflag::vowel)]==1)) {
+			return false;
+		}
+		if ((f & eflag::is_dipthong) && (this->rq_[static_cast<size_t>(rqflag::dipthong)]==-1)) {
+			return false;
+		}
+		if ((f &~ eflag::is_dipthong) && (this->rq_[static_cast<size_t>(rqflag::dipthong)]==1)) {
+			return false;
+		}
+		if ((f & eflag::not_first) && (this->rq_[static_cast<size_t>(rqflag::first)]==1)) {
+			return false;
+		}
+		if ((f &~ eflag::not_first) && (this->rq_[static_cast<size_t>(rqflag::first)]==-1)) {
+			return false;
+		}
+		return true;
+	};
+
+	constexpr bool operator &&(rqflag f) const { 
+		return this->rq_[static_cast<size_t>(f)] == 1;
+	};
+	constexpr bool operator &&(rqflag_forbid f) const { 
+		return this->rq_[static_cast<size_t>(f)] == -1;
+	};
+private:
+	std::array<int,3> rq_ {0,0,0};
+};
+
+
+/*
 class elem_properties_t {
 public:
 	enum mode {
@@ -94,11 +160,13 @@ private:
 		if (f == elem_properties_t::flag::not_first) { return 2; };
 	};
 	std::array<elem_properties_t::mode,3> m_prop {ignore,ignore,ignore};
-};
+};*/
 
 struct pw_element {
-	const char	*str;
-	eflag flags;
+	std::string str;
+	//const char *str;
+	//eflag flags;
+	int flags;
 };
 
 /*
