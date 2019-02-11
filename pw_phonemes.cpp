@@ -162,7 +162,7 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 		// Digits flag:  Require >= 1 digit
 		// If the current position in passwd is a non-"first" location, maybe append a digit.  
 		if (opts.digits) {
-			if ((randdig() < 3) && !(curr_elem.flags & eflag::first)) {
+			if ((randdig()<3) && !(curr_elem.flags & eflag::first)) {
 				passwd += rand_char(pw_digits);
 				curr_pw_features.has_digit = true;
 			}
@@ -171,7 +171,7 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 		// Symbols flag:  Require >= 1 symbol
 		// If the current position in passwd is a non-"first" location, maybe append a symbol.  
 		if (opts.symbols) {
-			if ((randdig() < 2) && !(curr_elem.flags & eflag::first)) {
+			if ((randdig()<2) && !(curr_elem.flags & eflag::first)) {
 				passwd += rand_char(pw_symbols);
 				curr_pw_features.has_symbol = true;
 			}
