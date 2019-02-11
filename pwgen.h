@@ -8,7 +8,7 @@
 #include <vector>
 #include <bitset>
 #include <algorithm>
-#include<array>
+#include <array>
 
 
 // Returns usage info
@@ -33,11 +33,9 @@ std::string pw_phonemes(const pw_opts_t&);
 std::string pw_rand(const pw_opts_t&);
 
 enum eflag {
-	none = 0x0000,
-	is_consonant = 0x0001,
-	is_vowel = 0x0002,
-	is_dipthong = 0x0004,
-	not_first = 0x0008
+	vowel = 0x0001,
+	dipthong = 0x0004,
+	first = 0x0008
 };
 //operator eflag(int) { return static_cast<eflag
 

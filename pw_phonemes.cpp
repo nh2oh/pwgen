@@ -1,6 +1,6 @@
 // pw_phonemes.cpp --- generate secure passwords using phoneme rules
-// Copyright (C) 2018 by Ben Knowles
-// Copyright (C) 2001,2002 by Theodore Ts'o
+// Copyright (C) 2018, 2019 by Ben Knowles
+// Copyright (C) 2001, 2002 by Theodore Ts'o
 // This file may be distributed under the terms of the GNU Public License.
 //
 
@@ -10,61 +10,215 @@
 #include <algorithm>
 #include "pwgen.h"
 
+//
 // Everything has a single consonant label or a single vowel label; some items have
 // addnl labels, but each element is either a vowel or consonant.  
 // is_consonant iff it starts w/a consonant (ex: "qu"); if contains, but does 
 // not start w/a consonant, does not get is_consonant (ex: "ah").  
-// is_vowel iff it starts w/a vowel (ex: "ah"); if contains, but does not start 
-// w/a vowel, does not get is_vowel (ex: "qu").  
-// is_vowel, is_consonant are mutually exclusive
-// is_dipthong iff 2 letters.  Dipthongs exist that are also vowels; dipthongs
-// exist that not also consonants.  All dipthongs are either vowels or consonants.
+// -> is_vowel iff it starts w/a vowel (ex: "ah"); if contains, but does not start 
+//    w/a vowel, does not get is_vowel (ex: "qu").  
+//    is_vowel, is_consonant are mutually exclusive
+// -> is_dipthong iff 2 letters.  Dipthongs exist that are also vowels (ex: "ae," "ah");
+//    dipthongs exist that are also consonants (ex: "ch," "qu").  
+//    All dipthongs are either vowels or consonants.
+//
 
 // TODO:  Convert to std::array<pw_element,N>
 pw_element elements[] = {
-	{ "a",	eflag::is_vowel },
-	{ "ae", eflag::is_vowel | eflag::is_dipthong },
-	{ "ah",	eflag::is_vowel | eflag::is_dipthong },
-	{ "ai", eflag::is_vowel | eflag::is_dipthong },
-	{ "b",  eflag::is_consonant },
-	{ "c",	eflag::is_consonant },
-	{ "ch", eflag::is_consonant | eflag::is_dipthong },
-	{ "d",	eflag::is_consonant },
-	{ "e",	eflag::is_vowel },
-	{ "ee", eflag::is_vowel | eflag::is_dipthong },
-	{ "ei",	eflag::is_vowel | eflag::is_dipthong },
-	{ "f",	eflag::is_consonant },
-	{ "g",	eflag::is_consonant },
-	{ "gh", eflag::is_consonant | eflag::is_dipthong | eflag::not_first },
-	{ "h",	eflag::is_consonant },
-	{ "i",	eflag::is_vowel },
-	{ "ie", eflag::is_vowel | eflag::is_dipthong },
-	{ "j",	eflag::is_consonant },
-	{ "k",	eflag::is_consonant },
-	{ "l",	eflag::is_consonant },
-	{ "m",	eflag::is_consonant },
-	{ "n",	eflag::is_consonant },
-	{ "ng",	eflag::is_consonant | eflag::is_dipthong | eflag::not_first },
-	{ "o",	eflag::is_vowel },
-	{ "oh",	eflag::is_vowel | eflag::is_dipthong },
-	{ "oo",	eflag::is_vowel | eflag::is_dipthong},
-	{ "p",	eflag::is_consonant },
-	{ "ph",	eflag::is_consonant | eflag::is_dipthong },
-	{ "qu",	eflag::is_consonant | eflag::is_dipthong},
-	{ "r",	eflag::is_consonant },
-	{ "s",	eflag::is_consonant },
-	{ "sh",	eflag::is_consonant | eflag::is_dipthong},
-	{ "t",	eflag::is_consonant },
-	{ "th",	eflag::is_consonant | eflag::is_dipthong},
-	{ "u",	eflag::is_vowel },
-	{ "v",	eflag::is_consonant },
-	{ "w",	eflag::is_consonant },
-	{ "x",	eflag::is_consonant },
-	{ "y",	eflag::is_consonant },
-	{ "z",	eflag::is_consonant }
+	{ "a",	eflag::vowel | eflag::first },
+	{ "ae", eflag::vowel | eflag::dipthong | eflag::first },
+	{ "ah",	eflag::vowel | eflag::dipthong | eflag::first },
+	{ "ai", eflag::vowel | eflag::dipthong | eflag::first },
+	{ "b",  eflag::first},
+	{ "c",	eflag::first},
+	{ "ch", eflag::dipthong | eflag::first},
+	{ "d",	eflag::first},
+	{ "e",	eflag::vowel | eflag::first },
+	{ "ee", eflag::vowel | eflag::dipthong | eflag::first},
+	{ "ei",	eflag::vowel | eflag::dipthong | eflag::first},
+	{ "f",	eflag::first},
+	{ "g",	eflag::first},
+	{ "gh", eflag::dipthong},  // NB: !first
+	{ "h",	eflag::first},
+	{ "i",	eflag::vowel | eflag::first},
+	{ "ie", eflag::vowel | eflag::dipthong | eflag::first},
+	{ "j",	eflag::first},
+	{ "k",	eflag::first},
+	{ "l",	eflag::first},
+	{ "m",	eflag::first},
+	{ "n",	eflag::first},
+	{ "ng",	eflag::dipthong},  // NB: !first
+	{ "o",	eflag::vowel | eflag::first },
+	{ "oh",	eflag::vowel | eflag::dipthong | eflag::first},
+	{ "oo",	eflag::vowel | eflag::dipthong | eflag::first},
+	{ "p",	eflag::first},
+	{ "ph",	eflag::dipthong | eflag::first },
+	{ "qu",	eflag::dipthong | eflag::first},
+	{ "r",	eflag::first},
+	{ "s",	eflag::first},
+	{ "sh",	eflag::dipthong},
+	{ "t",	eflag::first},
+	{ "th",	eflag::dipthong | eflag::first},
+	{ "u",	eflag::vowel | eflag::first},
+	{ "v",	eflag::first},
+	{ "w",	eflag::first},
+	{ "x",	eflag::first},
+	{ "y",	eflag::first},
+	{ "z",	eflag::first}
 };
-
 //#define NUM_ELEMENTS (sizeof(elements) / sizeof (struct pw_element))
+
+
+
+
+
+
+
+std::string pw_phonemes2(const pw_opts_t& opts) {
+	// opts.no_vowels is not enforced
+
+	std::string pw_digits_all = {"0123456789"};
+	std::string pw_symbols_all = {"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"};
+	std::string pw_ambiguous_all = {"B8G6I1l0OQDS5Z2"};
+
+	std::string pw_digits {pw_digits_all};
+	std::string pw_symbols {pw_symbols_all};
+
+	std::default_random_engine re {};
+
+	auto rand_char = [&re](const std::string& s) -> char {
+		std::uniform_int_distribution rd {static_cast<size_t>(0),s.size()-1};
+		return s[rd(re)];
+	};
+	auto rand_elem = [&re]() -> pw_element {
+		std::uniform_int_distribution rd {static_cast<size_t>(0),sizeof(elements)/sizeof(pw_element)-1};
+		return elements[rd(re)];  // elements is a global var
+	};
+	auto randdig = [&re]() -> int {
+		std::uniform_int_distribution rd {static_cast<size_t>(0),static_cast<size_t>(9)};
+		return rd(re);
+	};
+
+	std::string passwd {};
+	int rqs {0};
+	struct passwd_features_t {
+		bool has_upper {false};
+		bool has_digit {false};
+		bool has_symbol {false};
+	};
+	passwd_features_t curr_pw_features {};
+
+	pw_element curr_elem;
+	pw_element prev_elem;
+	while (passwd.size() < opts.pw_length) {
+		curr_elem = rand_elem();
+
+		if (passwd.size() == 0) {  // First iter
+			if (!(curr_elem.flags & eflag::first)) {
+				continue;
+			}
+			if (randdig()>4 && !(curr_elem.flags & vowel)) {
+				continue;
+			}
+		} else {  // Not the first iter
+			if (!(prev_elem.flags & eflag::vowel)) {  // prev_elem was a consonant
+				if (!(curr_elem.flags & vowel)) {
+					continue;
+				}
+			} else {  // prev elem was a vowel
+				// Want to allow elements that are one of vowel, dipthong, but forbid elements
+				// that are _both_ vowel, dipthong
+				if ((curr_elem.flags & eflag::vowel) && (curr_elem.flags & eflag::dipthong)) {
+					continue;
+				}
+				if (randdig()>3 && !(curr_elem.flags & eflag::vowel)) {
+					continue;
+				}
+			}
+
+			if (std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9) {
+				// Can't pick up after a digit w/ something marked "not first."  These are the
+				// same conditions as are set on the very first iter.  
+				if (!(curr_elem.flags & eflag::first)) {
+					continue;
+				}
+				if (randdig()>4 && !(curr_elem.flags & eflag::vowel)) {
+					continue;
+				}
+			} else {  // prev elem was not a digit
+				// curr_require |= eflag::not_first;  // means forbid first => require not_first (?)
+			}
+		}
+
+		// Uppers flag:  Require >= 1 uc char
+		if (opts.uppers) {
+			if (randdig() < 2)
+				&& ((curr_elem.flags & eflag::first) || !(curr_elem.flags & eflag::vowel))) {
+				std::transform(curr_elem.str.begin(),curr_elem.str.end(),curr_elem.str.begin(),::toupper);
+				curr_pw_props.has_upper = true;
+			}
+		}
+
+		passwd += curr_elem.str;
+
+		// Digits flag:  Require >= 1 digit
+		// If the current position in passwd is a non-"first" location, maybe append a digit.  
+		if (opts.digits) {
+			if ((randdig() < 3) && !(curr_elem.flags & eflag::first)) {
+				passwd += rand_char(pw_digits);
+				curr_pw_props.has_digit = true;
+			}
+		}
+
+		// Symbols flag:  Require >= 1 symbol
+		// If the current position in passwd is a non-"first" location, maybe append a symbol.  
+		if (opts.symbols) {
+			if ((randdig() < 2) && !(curr_elem.flags & eflag::first)) {
+				passwd += rand_char(pw_symbols);
+				curr_pw_props.has_symbol = true;
+			}
+		}
+
+		prev_elem = curr_elem;
+
+		if (passwd.size() >= opts.pw_length) {
+			if ((opts.uppers && !curr_pw_props.has_upper) 
+				|| (opts.digits && !curr_pw_props.has_digit) 
+				|| (opts.symbols && !curr_pw_props.has_symbol)) {
+				// The current passwd is the correct length but does not have all the 
+				// features required by opts; restart
+				passwd.clear();
+				curr_pw_props = passwd_features_t {};
+			}
+		}
+
+	}  // Generate next curr_elem
+	
+	
+	/*constexpr rqflag fv = rqflag::vowel;
+	constexpr rqflag ff = rqflag::first;
+	constexpr rqflag_forbid fff = ~rqflag::first;
+
+	elem_rq rqs {};
+	constexpr auto x = rqs &= fv;
+	constexpr int p1 = x.rq_[0];*/
+	return passwd;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 std::string pw_phonemes(const pw_opts_t& opts) {
 	// opts.no_vowels is not enforced
@@ -135,7 +289,7 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 			} else {  // prev elem was a vowel
 				if (randdig()>3) { rq_ce &= rqflag::vowel; }
 				//rq_ce &= (randdig()<=3) ? rqflag::vowel : 0;
-				rq_ce &= ~rqflag::dipthong;
+				rq_ce &= ~rqflag::dipthong;  // means forbid dipthong
 				//rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()<=3));
 				//rq_curr_elem.set(elem_properties_t::flag::dipthong,elem_properties_t::mode::forbid);
 					// vowels are _never_ followed by dipthongs
@@ -150,7 +304,7 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 				// Can't pick up after a digit w/ something marked "not first."  These are the
 				// same conditions as are set on the very first iter.  
 			} else {
-				rq_ce &= ~rqflag::first;
+				rq_ce &= ~rqflag::first;  // means forbid first => require not_first (?)
 				//rq_curr_elem.set(elem_properties_t::flag::not_first,elem_properties_t::mode::require);
 			}
 		}
