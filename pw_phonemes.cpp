@@ -25,10 +25,10 @@
 
 // TODO:  Convert to std::array<pw_element,N>
 pw_element elements[] = {
-	{ "a",	eflag::vowel | eflag::first },
-	{ "ae", eflag::vowel | eflag::dipthong | eflag::first },
-	{ "ah",	eflag::vowel | eflag::dipthong | eflag::first },
-	{ "ai", eflag::vowel | eflag::dipthong | eflag::first },
+	{ "a",	eflag::vowel | eflag::first},
+	{ "ae", eflag::vowel | eflag::dipthong | eflag::first},
+	{ "ah",	eflag::vowel | eflag::dipthong | eflag::first},
+	{ "ai", eflag::vowel | eflag::dipthong | eflag::first},
 	{ "b",  eflag::first},
 	{ "c",	eflag::first},
 	{ "ch", eflag::dipthong | eflag::first},
@@ -48,11 +48,11 @@ pw_element elements[] = {
 	{ "m",	eflag::first},
 	{ "n",	eflag::first},
 	{ "ng",	eflag::dipthong},  // NB: !first
-	{ "o",	eflag::vowel | eflag::first },
+	{ "o",	eflag::vowel | eflag::first},
 	{ "oh",	eflag::vowel | eflag::dipthong | eflag::first},
 	{ "oo",	eflag::vowel | eflag::dipthong | eflag::first},
 	{ "p",	eflag::first},
-	{ "ph",	eflag::dipthong | eflag::first },
+	{ "ph",	eflag::dipthong | eflag::first},
 	{ "qu",	eflag::dipthong | eflag::first},
 	{ "r",	eflag::first},
 	{ "s",	eflag::first},
@@ -70,11 +70,7 @@ pw_element elements[] = {
 
 
 
-
-
-
-
-std::string pw_phonemes2(const pw_opts_t& opts) {
+std::string pw_phonemes(const pw_opts_t& opts) {
 	// opts.no_vowels is not enforced
 
 	std::string pw_digits_all = {"0123456789"};
@@ -87,6 +83,9 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 	std::default_random_engine re {};
 
 	auto rand_char = [&re](const std::string& s) -> char {
+		if (s.size() == 0) {
+			std::abort();
+		}
 		std::uniform_int_distribution rd {static_cast<size_t>(0),s.size()-1};
 		return s[rd(re)];
 	};
@@ -99,8 +98,7 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 		return rd(re);
 	};
 
-	std::string passwd {};
-	int rqs {0};
+	std::string passwd {};  passwd.reserve(opts.pw_length);
 	struct passwd_features_t {
 		bool has_upper {false};
 		bool has_digit {false};
@@ -117,7 +115,7 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 			if (!(curr_elem.flags & eflag::first)) {
 				continue;
 			}
-			if (randdig()>4 && !(curr_elem.flags & vowel)) {
+			if (randdig()>4 && !(curr_elem.flags & eflag::vowel)) {
 				continue;
 			}
 		} else {  // Not the first iter
@@ -155,7 +153,7 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 			if (randdig() < 2)
 				&& ((curr_elem.flags & eflag::first) || !(curr_elem.flags & eflag::vowel))) {
 				std::transform(curr_elem.str.begin(),curr_elem.str.end(),curr_elem.str.begin(),::toupper);
-				curr_pw_props.has_upper = true;
+				curr_pw_features.has_upper = true;
 			}
 		}
 
@@ -166,7 +164,7 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 		if (opts.digits) {
 			if ((randdig() < 3) && !(curr_elem.flags & eflag::first)) {
 				passwd += rand_char(pw_digits);
-				curr_pw_props.has_digit = true;
+				curr_pw_features.has_digit = true;
 			}
 		}
 
@@ -175,7 +173,7 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 		if (opts.symbols) {
 			if ((randdig() < 2) && !(curr_elem.flags & eflag::first)) {
 				passwd += rand_char(pw_symbols);
-				curr_pw_props.has_symbol = true;
+				curr_pw_features.has_symbol = true;
 			}
 		}
 
@@ -188,200 +186,16 @@ std::string pw_phonemes2(const pw_opts_t& opts) {
 				// The current passwd is the correct length but does not have all the 
 				// features required by opts; restart
 				passwd.clear();
-				curr_pw_props = passwd_features_t {};
+				curr_pw_features = passwd_features_t {};
 			}
 		}
 
 	}  // Generate next curr_elem
 	
-	
-	/*constexpr rqflag fv = rqflag::vowel;
-	constexpr rqflag ff = rqflag::first;
-	constexpr rqflag_forbid fff = ~rqflag::first;
-
-	elem_rq rqs {};
-	constexpr auto x = rqs &= fv;
-	constexpr int p1 = x.rq_[0];*/
 	return passwd;
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-std::string pw_phonemes(const pw_opts_t& opts) {
-	// opts.no_vowels is not enforced
-
-	std::string pw_digits_all = {"0123456789"};
-	std::string pw_symbols_all = {"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"};
-	std::string pw_ambiguous_all = {"B8G6I1l0OQDS5Z2"};
-
-	// TODO:  Not used; move to pw_rand()
-	/*auto contains_ambiguous = [pw_ambiguous](const std::string& s) -> bool {
-		auto it = std::find_first_of(s.begin(),s.end(),
-				pw_ambiguous.begin(),pw_ambiguous.end());
-		return it == s.end();
-	};*/
-
-	// TODO:  Temp Hack
-	std::string pw_digits {pw_digits_all}; std::string pw_symbols {pw_symbols_all};
-	/*if (opts.no_ambiguous) {
-		std::set_difference(pw_digits_all.begin(),pw_digits_all.end(),
-			pw_ambiguous.begin(),pw_ambiguous.end(),std::back_inserter(pw_digits));
-
-		std::set_difference(pw_symbols_all.begin(),pw_symbols_all.end(),
-			pw_ambiguous.begin(),pw_ambiguous.end(),std::back_inserter(pw_symbols));
-	}*/
-
-	// Replaces pw_number(int); pw_number(i) returns on [0,i)
-	std::default_random_engine re {};
-
-	auto rand_char = [&re](const std::string& s) -> char {
-		std::uniform_int_distribution rd {static_cast<size_t>(0),s.size()-1};
-		return s[rd(re)];
-	};
-	auto rand_elem = [&re]() -> pw_element {
-		std::uniform_int_distribution rd {static_cast<size_t>(0),sizeof(elements)/sizeof(pw_element)-1};
-		return elements[rd(re)];  // elements is a global var
-	};
-	auto randdig = [&re]() -> int {
-		std::uniform_int_distribution rd {static_cast<size_t>(0),static_cast<size_t>(9)};
-		return rd(re);
-	};
-
-	std::string passwd {};
-	//elem_properties_t rq_curr_elem {};  // Requirements for the current element
-	elem_rq rq_ce {};
-	struct passwd_features_t {
-		bool has_upper {false};
-		bool has_digit {false};
-		bool has_symbol {false};
-	};
-	passwd_features_t curr_pw_props {};
-
-	pw_element curr_elem;  // uninit :(
-	pw_element prev_elem;  // uninit :(
-	while (passwd.size() < opts.pw_length) {
-		if (passwd.size() == 0) {  // First iter
-			rq_ce &= rqflag::first;
-			if (randdig()>4) { rq_ce &= rqflag::vowel; }
-			//rq_ce &= (randdig()>4) ? rqflag::vowel : 0;
-			//rq_curr_elem.set(elem_properties_t::flag::not_first,elem_properties_t::flag::forbid);
-				// Can't start the passwd w/ something marked "not first."  
-			//rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()>4));
-
-		} else {  // Not the first iter
-			if (prev_elem.flags & eflag::is_consonant) {
-				rq_ce &= rqflag::vowel;
-				//rq_curr_elem.set(elem_properties_t::flag::vowel,elem_properties_t::mode::require);
-					// consonants are _always_ followed by vowels (c-v || c-dv); forbids c-dc
-			} else {  // prev elem was a vowel
-				if (randdig()>3) { rq_ce &= rqflag::vowel; }
-				//rq_ce &= (randdig()<=3) ? rqflag::vowel : 0;
-				rq_ce &= ~rqflag::dipthong;  // means forbid dipthong
-				//rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()<=3));
-				//rq_curr_elem.set(elem_properties_t::flag::dipthong,elem_properties_t::mode::forbid);
-					// vowels are _never_ followed by dipthongs
-			}
-
-			if (std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9) {
-				rq_ce &= rqflag::first;
-				if (randdig()>4) { rq_ce &= rqflag::vowel; }
-				//rq_ce &= (randdig()>4) ? rqflag::vowel : 0;
-				//rq_curr_elem.set(elem_properties_t::flag::vowel,(randdig()>4));
-				//rq_curr_elem.set(elem_properties_t::flag::not_first,elem_properties_t::mode::forbid);
-				// Can't pick up after a digit w/ something marked "not first."  These are the
-				// same conditions as are set on the very first iter.  
-			} else {
-				rq_ce &= ~rqflag::first;  // means forbid first => require not_first (?)
-				//rq_curr_elem.set(elem_properties_t::flag::not_first,elem_properties_t::mode::require);
-			}
-		}
-
-		bool success {false};
-		do {
-			curr_elem = rand_elem();
-			success = rq_ce && curr_elem.flags;
-			//bool success = rq_curr_elem.satisfied(elem_properties_t::flag::vowel, (curr_elem.flags & elem_properties_t::flag::vowel))
-			//	&& rq_curr_elem.satisfied(elem_properties_t::flag::not_first, (curr_elem.flags & elem_properties_t::flag::not_first))
-			//	&& rq_curr_elem.satisfied(elem_properties_t::flag::dipthong, (curr_elem.flags & elem_properties_t::flag::dipthong));
-		} while (!success);
-
-		// Uppers flag:  Require >= 1 uc char
-		if (opts.uppers) {
-			// TODO:  test for _requires_ first vs _tolerates_ first ???
-			if (((rq_ce && rqflag::first) || (curr_elem.flags & eflag::is_consonant)) && (randdig() < 2)) {
-			//if ((rq_curr_elem.forbids(elem_properties_t::flag::not_first) || (curr_elem.flags & eflag::is_consonant)) 
-			//	&& (randdig() < 2)) {
-				// If the curr_elem is a consonant or the current pos is a 'first' position, 
-				// maybe convert curr_elem to upper.  
-				//std::string curr_str {curr_elem.str};
-				std::transform(curr_elem.str.begin(),curr_elem.str.end(),curr_elem.str.begin(),::toupper);
-				curr_pw_props.has_upper = true;
-			}
-		}
-
-		passwd += curr_elem.str;
-
-		// Digits flag:  Require >= 1 digit
-		// If the current position in passwd is a non-"first" location, maybe append a digit.  
-		if (opts.digits && (rq_ce && ~rqflag::first) && (randdig() < 3)) {
-		//if (opts.digits 
-		//	&& rq_curr_elem.requires(elem_properties_t::flag::not_first) && (randdig() < 3)) {
-			passwd += rand_char(pw_digits);
-			curr_pw_props.has_digit = true;
-		}
-
-		// Symbols flag:  Require >= 1 symbol
-		// If the current position in passwd is a non-"first" location, maybe append a symbol.  
-		if (opts.symbols && (rq_ce && ~rqflag::first) && (randdig() < 2)) {
-		//if (opts.symbols
-		//	&& rq_curr_elem.requires(elem_properties_t::flag::not_first)
-		//	&& (randdig() < 2)) {
-			passwd += rand_char(pw_symbols);
-			curr_pw_props.has_symbol = true;
-		}
-
-		prev_elem = curr_elem;
-		rq_ce.reset();
-		//rq_curr_elem.reset();
-
-		if (passwd.size() >= opts.pw_length) {
-			if ((opts.uppers && !curr_pw_props.has_upper) 
-				|| (opts.digits && !curr_pw_props.has_digit) 
-				|| (opts.symbols && !curr_pw_props.has_symbol)) {
-				// The current passwd is the correct length but does not have all the 
-				// features required by opts; restart
-				passwd.clear();
-				rq_ce.reset();
-				//rq_curr_elem.reset();
-				curr_pw_props = passwd_features_t {};
-			}
-		}
-
-	}
-	
-	
-	/*constexpr rqflag fv = rqflag::vowel;
-	constexpr rqflag ff = rqflag::first;
-	constexpr rqflag_forbid fff = ~rqflag::first;
-
-	elem_rq rqs {};
-	constexpr auto x = rqs &= fv;
-	constexpr int p1 = x.rq_[0];*/
-	return passwd;
-}
 
 
 /*
@@ -503,3 +317,4 @@ try_again:
 	if (feature_flags & (PW_UPPERS | PW_DIGITS | PW_SYMBOLS))
 		goto try_again;
 }*/
+
