@@ -8,7 +8,9 @@
 #include <random>
 #include <cstdlib>  // std::atoi()
 #include <algorithm>
+#include <iterator>  // std::std::back_inserter()
 #include "pwgen.h"
+#include <array>
 
 //
 // Everything has a single consonant label or a single vowel label; some items have
@@ -23,9 +25,9 @@
 //    All dipthongs are either vowels or consonants.
 //
 
-// TODO:  Convert to std::array<pw_element,N>
-pw_element elements[] = {
-	{ "a",	eflag::vowel | eflag::first},
+
+std::array<pw_element,40> elements {
+	{{ "a",	eflag::vowel | eflag::first},
 	{ "ae", eflag::vowel | eflag::dipthong | eflag::first},
 	{ "ah",	eflag::vowel | eflag::dipthong | eflag::first},
 	{ "ai", eflag::vowel | eflag::dipthong | eflag::first},
@@ -64,13 +66,28 @@ pw_element elements[] = {
 	{ "w",	eflag::first},
 	{ "x",	eflag::first},
 	{ "y",	eflag::first},
-	{ "z",	eflag::first}
+	{ "z",	eflag::first}}
 };
-//#define NUM_ELEMENTS (sizeof(elements) / sizeof (struct pw_element))
 
+constexpr bool is_consonant(int ef) {
+	return !(ef & eflag::vowel);
+}
+constexpr bool is_vowel(int ef) {
+	return (ef & eflag::vowel);
+}
+constexpr bool is_vowel_and_dipth(int ef) {
+	return ((ef & eflag::vowel) && (ef & eflag::dipthong));
+}
+constexpr bool may_appear_first(int ef) {
+	return (ef & eflag::first);
+}
+bool is_digit(char c) {
+	// std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9
+	std::array<char,2> str {c, '\0'};
+	return std::atoi(&str[0]) >= 0 && std::atoi(&str[0]) <= 9;
+}
 
-
-std::string pw_phonemes(const pw_opts_t& opts) {
+std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 	// opts.no_vowels is not enforced
 
 	std::string pw_digits_all = {"0123456789"};
@@ -79,24 +96,31 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 
 	std::string pw_digits {pw_digits_all};
 	std::string pw_symbols {pw_symbols_all};
+	
 
-	std::default_random_engine re {};
-
-	auto rand_char = [&re](const std::string& s) -> char {
-		if (s.size() == 0) {
-			std::abort();
-		}
-		std::uniform_int_distribution rd {static_cast<size_t>(0),s.size()-1};
-		return s[rd(re)];
-	};
-	auto rand_elem = [&re]() -> pw_element {
-		std::uniform_int_distribution rd {static_cast<size_t>(0),sizeof(elements)/sizeof(pw_element)-1};
-		return elements[rd(re)];  // elements is a global var
-	};
 	auto randdig = [&re]() -> int {
-		std::uniform_int_distribution rd {static_cast<size_t>(0),static_cast<size_t>(9)};
+		std::uniform_int_distribution rd(0,9);
 		return rd(re);
 	};
+
+	struct currfail_t {
+		int a {0};
+		int b {0};
+		int c {0};
+		int d {0};
+		int e {0};
+		int f {0};
+		int g {0};
+	};
+	currfail_t currfail {};
+
+	struct nfail_t {
+		int upper {0};
+		int digit {0};
+		int symbol {0};
+		int length {0};
+	};
+	nfail_t nfail {};
 
 	std::string passwd {};  passwd.reserve(opts.pw_length);
 	struct passwd_features_t {
@@ -108,40 +132,46 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 
 	pw_element curr_elem;
 	pw_element prev_elem;
+	int titer {0};
 	while (passwd.size() < opts.pw_length) {
-		curr_elem = rand_elem();
+		++titer;
+		//curr_elem = rand_elem();
+		std::sample(elements.begin(),elements.end(),&curr_elem,1,re);
 
 		if (passwd.size() == 0) {  // First iter
-			if (!(curr_elem.flags & eflag::first)) {
-				continue;
+			if (!may_appear_first(curr_elem.flags)) {
+				++currfail.a; continue;
 			}
-			if (randdig()>4 && !(curr_elem.flags & eflag::vowel)) {
-				continue;
+			if (randdig()>4 && is_consonant(curr_elem.flags)) {
+				++currfail.b; continue;
 			}
 		} else {  // Not the first iter
-			if (!(prev_elem.flags & eflag::vowel)) {  // prev_elem was a consonant
-				if (!(curr_elem.flags & vowel)) {
-					continue;
+			if (is_consonant(prev_elem.flags)) {  // prev_elem was a consonant
+				if (is_consonant(curr_elem.flags)) {  // a cons must always be followed by a vowel
+					++currfail.c; continue;
 				}
+				//if (randdig()>7 && is_consonant(curr_elem.flags)) {
+				//	++currfail.c; continue;
+				//}
 			} else {  // prev elem was a vowel
 				// Want to allow elements that are one of vowel, dipthong, but forbid elements
 				// that are _both_ vowel, dipthong
-				if ((curr_elem.flags & eflag::vowel) && (curr_elem.flags & eflag::dipthong)) {
-					continue;
+				if (is_vowel_and_dipth(curr_elem.flags)) {
+					++currfail.d; continue;
 				}
-				if (randdig()>3 && !(curr_elem.flags & eflag::vowel)) {
-					continue;
+				if (randdig()>3 && is_consonant(curr_elem.flags)) {
+					++currfail.e; continue;
 				}
 			}
 
-			if (std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9) {
+			if (is_digit(passwd.back())) {
 				// Can't pick up after a digit w/ something marked "not first."  These are the
 				// same conditions as are set on the very first iter.  
-				if (!(curr_elem.flags & eflag::first)) {
-					continue;
+				if (!may_appear_first(curr_elem.flags)) {
+					++currfail.f; continue;
 				}
-				if (randdig()>4 && !(curr_elem.flags & eflag::vowel)) {
-					continue;
+				if (randdig()>4 && is_consonant(curr_elem.flags)) {
+					++currfail.g; continue;
 				}
 			} else {  // prev elem was not a digit
 				// curr_require |= eflag::not_first;  // means forbid first => require not_first (?)
@@ -150,46 +180,59 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 
 		// Uppers flag:  Require >= 1 uc char
 		if (opts.uppers) {
-			if (randdig() < 2)
-				&& ((curr_elem.flags & eflag::first) || !(curr_elem.flags & eflag::vowel))) {
+			if ((randdig() < 2)
+				&& (passwd.size()==0 || is_digit(passwd.back()) || is_consonant(curr_elem.flags))) {
 				std::transform(curr_elem.str.begin(),curr_elem.str.end(),curr_elem.str.begin(),::toupper);
 				curr_pw_features.has_upper = true;
 			}
 		}
 
-		passwd += curr_elem.str;
-
 		// Digits flag:  Require >= 1 digit
-		// If the current position in passwd is a non-"first" location, maybe append a digit.  
+		// If curr_elem can go first, maybe append a digit before appending curr_elem.  
 		if (opts.digits) {
-			if ((randdig()<3) && !(curr_elem.flags & eflag::first)) {
-				passwd += rand_char(pw_digits);
+			if ((randdig()<3) 
+				&& passwd.size() > 0 && !is_digit(passwd.back())) {
+				//passwd += rand_char(pw_digits);
+				std::sample(pw_digits.begin(),pw_digits.end(),std::back_inserter(passwd),1,re);
 				curr_pw_features.has_digit = true;
 			}
 		}
 
 		// Symbols flag:  Require >= 1 symbol
-		// If the current position in passwd is a non-"first" location, maybe append a symbol.  
+		// If curr_elem can go first, maybe append a symbol before appending curr_elem.  
 		if (opts.symbols) {
-			if ((randdig()<2) && !(curr_elem.flags & eflag::first)) {
-				passwd += rand_char(pw_symbols);
+			if ((randdig()<2) && may_appear_first(curr_elem.flags)) {
+				//passwd += rand_char(pw_symbols);
+				std::sample(pw_symbols.begin(),pw_symbols.end(),std::back_inserter(passwd),1,re);
 				curr_pw_features.has_symbol = true;
 			}
 		}
 
+		passwd += curr_elem.str;
+
 		prev_elem = curr_elem;
 
-		if (passwd.size() >= opts.pw_length) {
-			if ((opts.uppers && !curr_pw_props.has_upper) 
-				|| (opts.digits && !curr_pw_props.has_digit) 
-				|| (opts.symbols && !curr_pw_props.has_symbol)) {
+		if (passwd.size() == opts.pw_length) {
+			if ((opts.uppers && !curr_pw_features.has_upper) 
+				|| (opts.digits && !curr_pw_features.has_digit) 
+				|| (opts.symbols && !curr_pw_features.has_symbol)) {
 				// The current passwd is the correct length but does not have all the 
 				// features required by opts; restart
+
+
+				if (opts.uppers && !curr_pw_features.has_upper) { ++nfail.upper; }
+				if (opts.digits && !curr_pw_features.has_digit) { ++nfail.digit; }
+				if (opts.symbols && !curr_pw_features.has_symbol) { ++nfail.symbol; }
+
+
 				passwd.clear();
 				curr_pw_features = passwd_features_t {};
 			}
+		} else if (passwd.size() > opts.pw_length) {
+			++nfail.length;
+			passwd.clear();
+			curr_pw_features = passwd_features_t {};
 		}
-
 	}  // Generate next curr_elem
 	
 	return passwd;
@@ -197,8 +240,45 @@ std::string pw_phonemes(const pw_opts_t& opts) {
 
 
 
+	//auto rand_char = [&re](const std::string& s) -> char {
+	//	if (s.size() == 0) {
+	//		std::abort();
+	//	}
+	//	std::uniform_int_distribution rd(0,static_cast<int>(s.size())-1);
+	//	return s[rd(re)];
+	//};
+	//auto rand_elem = [&re]() -> pw_element {
+	//	std::uniform_int_distribution rd(0,static_cast<int>(elements.size())-1);
+	//	return elements[rd(re)];
+	//};
+
+
+
+
 
 /*
+namespace tso {
+
+
+//
+//  Flags for the pw_element
+//
+#define CONSONANT	0x0001
+#define VOWEL		0x0002
+#define DIPTHONG	0x0004
+#define NOT_FIRST	0x0008
+
+//
+// Flags for the pwgen function
+//
+#define PW_DIGITS	0x0001	// At least one digit 
+#define PW_UPPERS	0x0002	// At least one upper letter 
+#define PW_SYMBOLS	0x0004
+#define PW_AMBIGUOUS	0x0008
+#define PW_NO_VOWELS	0x0010
+
+#define NUM_ELEMENTS (sizeof(elements) / sizeof (struct pw_element))
+
 void pw_phonemes(char *buf, int size, int pw_flags, char *remove)
 {
 	int		c, i, len, flags, feature_flags;
@@ -235,8 +315,8 @@ try_again:
 			continue;
 
 		//
-		 * OK, we found an element which matches our criteria,
-		 * let's do it!
+		// * OK, we found an element which matches our criteria,
+		// * let's do it!
 		 //
 		strcpy(buf+c, str);
 
@@ -316,5 +396,8 @@ try_again:
 	}
 	if (feature_flags & (PW_UPPERS | PW_DIGITS | PW_SYMBOLS))
 		goto try_again;
-}*/
+}
+
+};  // namespace tso
+*/
 

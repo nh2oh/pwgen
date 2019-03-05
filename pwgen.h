@@ -5,16 +5,21 @@
 // This file may be distributed under the terms of the GNU Public License.
 //
 #include <string>
-
+#include <random>
 
 enum eflag {
-	vowel = 0x0001,
+	vowel = 0x0001,  
 	dipthong = 0x0004,
-	first = 0x0008
+	first = 0x0008  // element is allowed to appear first
 };
+constexpr bool is_consonant(int);  // => !is_vowel()
+constexpr bool is_vowel(int);  // => !is_consonant()
+constexpr bool is_vowel_and_dipth(int);
+constexpr bool may_appear_first(int);
+bool is_digit(char);
 
 struct pw_element {
-	std::string str {};
+	std::string str {};  // TODO:  std::array<char,2>; insane to make this a std::string
 	int flags {0};
 };
 
@@ -27,12 +32,12 @@ struct pw_opts_t {
 	bool random {false};  // "generate completely random passwords -s | --secure"
 		// use pwgen = pw_rand
 	bool cols {true};  // output in cols:  -C
-	int num_cols {1};
-	int num_pw {5};  // number of pw's to generate
+	int num_cols {5};
+	int num_pw {100};  // number of pw's to generate
 	int pw_length {10};
 	std::string remove_chars {};
 };
-std::string pw_phonemes(const pw_opts_t&);
+std::string pw_phonemes(const pw_opts_t&, std::mt19937&);
 std::string pw_rand(const pw_opts_t&);
 
 std::string usage();  // Prints usage info
@@ -53,8 +58,8 @@ std::string usage();  // Prints usage info
 */
 
 
-extern const char *pw_symbols;
-extern const char *pw_ambiguous;
+//extern const char *pw_symbols;
+//extern const char *pw_ambiguous;
 
 // sha1num.c //
 void pw_sha1_init(char *sha1);

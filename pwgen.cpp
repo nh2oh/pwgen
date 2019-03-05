@@ -3,21 +3,24 @@
 // Copyright (C) 2001,2002 by Theodore Ts'o
 // This file may be distributed under the terms of the GNU Public License.
 //
-
 #include "pwgen.h"
 #include <iostream>
 #include <string>
 #include <algorithm>  // std::max()
 #include <exception>
+#include <random>
 
-
+std::random_device g_srd {};
+std::mt19937 g_re(g_srd());
 
 int main(int argc, char **argv) {
 	int	term_width = 80;
 	const char *pw_options = "01AaBCcnN:sr:hH:vy";
 
-	if (isatty(1)) { do_columns = 1; }
-	optflag pwgen_flags {optflag::require_digits | optflag::require_uppers};
+	auto x = {1,2};
+
+	//if (isatty(1)) { do_columns = 1; }
+	//optflag pwgen_flags {optflag::require_digits | optflag::require_uppers};
 
 	pw_opts_t opts {};
 	// Parse cmd ln:
@@ -59,7 +62,7 @@ int main(int argc, char **argv) {
 	std::string curr_passwd {};
 	for (int i=0; i < opts.num_pw; ++i) {
 		if (!opts.random) {
-			curr_passwd = pw_phonemes(opts);
+			curr_passwd = pw_phonemes(opts,g_re);
 		} else {
 			curr_passwd = pw_rand(opts);
 		}
