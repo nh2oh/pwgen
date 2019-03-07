@@ -14,8 +14,8 @@ std::random_device g_srd {};
 std::mt19937 g_re(g_srd());
 
 int main(int argc, char **argv) {
-	stats();
-	test_sample_if(g_re);
+	//stats();
+	//test_sample_if(g_re);
 
 	int	term_width = 80;
 	const char *pw_options = "01AaBCcnN:sr:hH:vy";
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 		}
 
 		std::cout << curr_passwd;
-		if (i%opts.num_cols==0) {
+		if (i > 0 && i%opts.num_cols==0) {
 			std::cout << "\n";
 		} else {
 			std::cout << "\t";

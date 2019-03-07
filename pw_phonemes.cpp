@@ -86,9 +86,11 @@ constexpr bool may_appear_first(int ef) {
 	return (ef & eflag::first);
 }
 bool is_digit(char c) {
+	auto n = c - '0';
+	return (n >= 0 && n <= 9);
 	// std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9
-	std::array<char,2> str {c, '\0'};
-	return std::atoi(&str[0]) >= 0 && std::atoi(&str[0]) <= 9;
+	//std::array<char,2> str {c, '\0'};
+	//return std::atoi(&str[0]) >= 0 && std::atoi(&str[0]) <= 9;
 }
 bool debug_sanity_check_eflag_conditions(int ef) {
 	if (is_vowel(ef) && is_consonant(ef)) {
@@ -196,6 +198,7 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 		int length {0};
 	};
 	nfail_t nfail {};
+	int nclears {0};
 
 	std::string passwd {};  passwd.reserve(opts.pw_length);
 	struct passwd_features_t {
@@ -213,22 +216,36 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 		//curr_elem = rand_elem();
 		std::sample(elements.begin(),elements.end(),&curr_elem,1,re);
 
-		if (!debug_sanity_check_eflag_conditions(curr_elem.flags)) {
-			std::cout << "what" << std::endl;
-		}
-
-		if (passwd.size() == 0) {  // First iter
-			if (!may_appear_first(curr_elem.flags)) {
+		if (passwd.size() == 0 || is_digit(passwd.back())) {  // First iter
+			auto whatever = [&randdig](const pw_element& pwe) -> bool {
+				return (may_appear_first(pwe.flags)
+					&& (is_consonant(pwe.flags) && randdig()>=4));
+			};
+			if (passwd.size()>0) { 
+				bool bback = is_digit(passwd.back());
+				auto back = passwd.back();
+				//std::cout << "digit";
+			}
+			sample_if(elements.begin(),elements.end(),&curr_elem,re,whatever);
+			//std::cout << "First:  " << prev_elem.str << " -> " << curr_elem.str << "\n";
+			/*if (!may_appear_first(curr_elem.flags)) {
 				++currfail.a; continue;
 			}
 			if (randdig()>4 && is_consonant(curr_elem.flags)) {
 				++currfail.b; continue;
-			}
+			}*/
 		} else {  // Not the first iter
 			if (is_consonant(prev_elem.flags)) {  // prev_elem was a consonant
-				if (!is_vowel(curr_elem.flags)) {  // a cons must always be followed by a vowel
+				
+				auto nfirst_cons = [](const pw_element& pwe) -> bool {
+					return is_vowel(pwe.flags);
+				};
+				sample_if(elements.begin(),elements.end(),&curr_elem,re,nfirst_cons);
+				//std::cout << "prev=>cons:  " << prev_elem.str << " -> " << curr_elem.str << "\n";
+
+				/*if (!is_vowel(curr_elem.flags)) {  // a cons must always be followed by a vowel
 					++currfail.c; continue;
-				}
+				}*/
 				//if (randdig()>7 && is_consonant(curr_elem.flags)) {
 				//	++currfail.c; continue;
 				//}
@@ -243,7 +260,7 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 				}
 			}
 
-			if (is_digit(passwd.back())) {
+			/*if (is_digit(passwd.back())) {
 				// Can't pick up after a digit w/ something marked "not first."  These are the
 				// same conditions as are set on the very first iter.  
 				if (!may_appear_first(curr_elem.flags)) {
@@ -254,7 +271,7 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 				}
 			} else {  // prev elem was not a digit
 				// curr_require |= eflag::not_first;  // means forbid first => require not_first (?)
-			}
+			}*/
 		}
 
 		// Uppers flag:  Require >= 1 uc char
@@ -297,18 +314,16 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 				|| (opts.symbols && !curr_pw_features.has_symbol)) {
 				// The current passwd is the correct length but does not have all the 
 				// features required by opts; restart
-
-
 				if (opts.uppers && !curr_pw_features.has_upper) { ++nfail.upper; }
 				if (opts.digits && !curr_pw_features.has_digit) { ++nfail.digit; }
 				if (opts.symbols && !curr_pw_features.has_symbol) { ++nfail.symbol; }
-
-
+				++nclears;
 				passwd.clear();
 				curr_pw_features = passwd_features_t {};
 			}
 		} else if (passwd.size() > opts.pw_length) {
 			++nfail.length;
+			++nclears;
 			passwd.clear();
 			curr_pw_features = passwd_features_t {};
 		}
