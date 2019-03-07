@@ -9,6 +9,7 @@
 #include <cstdlib>  // std::atoi()
 #include <algorithm>
 #include <iterator>  // std::std::back_inserter()
+#include <iostream>  // only for debugging
 #include "pwgen.h"
 #include <array>
 
@@ -58,7 +59,7 @@ std::array<pw_element,40> elements {
 	{ "qu",	eflag::dipthong | eflag::first},
 	{ "r",	eflag::first},
 	{ "s",	eflag::first},
-	{ "sh",	eflag::dipthong},
+	{ "sh",	eflag::dipthong | eflag::first},   // NB: !first
 	{ "t",	eflag::first},
 	{ "th",	eflag::dipthong | eflag::first},
 	{ "u",	eflag::vowel | eflag::first},
@@ -75,6 +76,9 @@ constexpr bool is_consonant(int ef) {
 constexpr bool is_vowel(int ef) {
 	return (ef & eflag::vowel);
 }
+constexpr bool is_dipthong(int ef) {
+	return (ef & eflag::dipthong);
+}
 constexpr bool is_vowel_and_dipth(int ef) {
 	return ((ef & eflag::vowel) && (ef & eflag::dipthong));
 }
@@ -85,6 +89,77 @@ bool is_digit(char c) {
 	// std::atoi(&passwd.back()) >= 0 && std::atoi(&passwd.back()) <= 9
 	std::array<char,2> str {c, '\0'};
 	return std::atoi(&str[0]) >= 0 && std::atoi(&str[0]) <= 9;
+}
+bool debug_sanity_check_eflag_conditions(int ef) {
+	if (is_vowel(ef) && is_consonant(ef)) {
+		return false;
+	}
+
+	if (is_vowel_and_dipth(ef) && is_consonant(ef)) {
+		return false;
+	}
+
+	if (is_vowel_and_dipth(ef) && !is_vowel(ef)) {
+		return false;
+	}
+
+	return true;
+}
+
+int test_sample_if(std::mt19937& re) {
+	pw_element elem;
+
+	/*int i=0;
+	while (i<1000) {
+		std::sample(elements.begin(),elements.end(),&elem,1,re);
+		if (!is_vowel(elem.flags)) {
+			//std::cout << "what" << std::endl;
+		} else {
+			std::cout << elem.str << ", ";
+			++i;
+		}
+	}*/
+
+	auto pred_is_vowel = [](const pw_element& pwe) -> bool { return is_vowel(pwe.flags); };
+
+	for (int i=0; i<1000; ++i) {
+		sample_if(elements.begin(),elements.end(),&elem,re,pred_is_vowel);
+		if (!is_vowel(elem.flags)) {
+			std::cout << "what" << std::endl;
+		} else {
+			std::cout << elem.str << ", ";
+		}
+	}
+
+	return 0;
+}
+
+int stats() {
+	struct stats_t {
+		int is_vowel {0};
+		int is_dipth {0};
+		int is_vowel_dipth {0};
+		int is_consonant {0};
+		int is_first {0};
+	};
+
+	stats_t counts {};
+	for (int i=0; i<elements.size(); ++i) {
+		counts.is_vowel += is_vowel(elements[i].flags);
+		counts.is_dipth += is_dipthong(elements[i].flags);
+		counts.is_vowel_dipth += is_vowel_and_dipth(elements[i].flags);
+		counts.is_consonant += is_consonant(elements[i].flags);
+		counts.is_first += may_appear_first(elements[i].flags);
+	}
+
+	std::cout << "is_vowel:\t" << counts.is_vowel << "\n";
+	std::cout << "is_dipth:\t" << counts.is_dipth << "\n";
+	std::cout << "is_vowel_dipth:\t" << counts.is_vowel_dipth << "\n";
+	std::cout << "is_consonant:\t" << counts.is_consonant << "\n";
+	std::cout << "is_first:\t" << counts.is_first << "\n";
+	std::cout << std::endl;
+
+	return 0;
 }
 
 std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
@@ -138,6 +213,10 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 		//curr_elem = rand_elem();
 		std::sample(elements.begin(),elements.end(),&curr_elem,1,re);
 
+		if (!debug_sanity_check_eflag_conditions(curr_elem.flags)) {
+			std::cout << "what" << std::endl;
+		}
+
 		if (passwd.size() == 0) {  // First iter
 			if (!may_appear_first(curr_elem.flags)) {
 				++currfail.a; continue;
@@ -147,7 +226,7 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 			}
 		} else {  // Not the first iter
 			if (is_consonant(prev_elem.flags)) {  // prev_elem was a consonant
-				if (is_consonant(curr_elem.flags)) {  // a cons must always be followed by a vowel
+				if (!is_vowel(curr_elem.flags)) {  // a cons must always be followed by a vowel
 					++currfail.c; continue;
 				}
 				//if (randdig()>7 && is_consonant(curr_elem.flags)) {
@@ -159,7 +238,7 @@ std::string pw_phonemes(const pw_opts_t& opts, std::mt19937& re) {
 				if (is_vowel_and_dipth(curr_elem.flags)) {
 					++currfail.d; continue;
 				}
-				if (randdig()>3 && is_consonant(curr_elem.flags)) {
+				if (randdig()>3 && !is_consonant(curr_elem.flags)) {
 					++currfail.e; continue;
 				}
 			}
@@ -399,5 +478,11 @@ try_again:
 }
 
 };  // namespace tso
+
 */
+
+
+
+
+
 

@@ -6,6 +6,20 @@
 //
 #include <string>
 #include <random>
+#include <algorithm>
+
+// std::sample(elements.begin(),elements.end(),&curr_elem,1,re);
+template<typename It_src, typename It_dest, typename Reng, typename Pred>
+bool sample_if(It_src beg, It_src end, It_dest dest, Reng&& re, Pred p) {
+	//decltype(*dest) element;
+	do {
+		std::sample(beg,end,dest,1,re);
+	} while (!p(*dest));
+	
+	//*dest=element;
+	return true;
+};
+int test_sample_if(std::mt19937&);
 
 enum eflag {
 	vowel = 0x0001,  
@@ -14,9 +28,12 @@ enum eflag {
 };
 constexpr bool is_consonant(int);  // => !is_vowel()
 constexpr bool is_vowel(int);  // => !is_consonant()
+constexpr bool is_dipthong(int);  // => !is_consonant()
 constexpr bool is_vowel_and_dipth(int);
 constexpr bool may_appear_first(int);
 bool is_digit(char);
+bool debug_sanity_check_eflag_conditions(int);
+int stats();
 
 struct pw_element {
 	std::string str {};  // TODO:  std::array<char,2>; insane to make this a std::string
